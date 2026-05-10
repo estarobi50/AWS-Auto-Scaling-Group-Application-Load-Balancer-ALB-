@@ -61,52 +61,33 @@ This allows Systems Manager (SSM) access without requiring SSH.
 Paste the following user data script during EC2 launch:
 
 #!/bin/bash
+
 exec > /var/log/user-data.log 2>&1
 
 yum update -y
 yum install -y httpd
 
-systemctl start httpd
 systemctl enable httpd
+systemctl start httpd
 
-# IMDSv2 token
 TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
-  -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+-H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 
 INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-  http://169.254.169.254/latest/meta-data/instance-id)
+http://169.254.169.254/latest/meta-data/instance-id)
 
 AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-  http://169.254.169.254/latest/meta-data/placement/availability-zone)
+http://169.254.169.254/latest/meta-data/placement/availability-zone)
 
 PRIVATE_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
-  http://169.254.169.254/latest/meta-data/local-ipv4)
+http://169.254.169.254/latest/meta-data/local-ipv4)
 
 cat <<EOF > /var/www/html/index.html
-<html>
-  <body>
-    <h1>Web Server Active</h1>
-    <h2>Instance ID: $INSTANCE_ID</h2>
-    <h2>AZ: $AZ</h2>
-    <h2>Private IP: $PRIVATE_IP</h2>
-  </body>
-</html>
+<h1>Web Server Active</h1>
+<p><b>Instance ID:</b> $INSTANCE_ID</p>
+<p><b>AZ:</b> $AZ</p>
+<p><b>Private IP:</b> $PRIVATE_IP</p>
 EOF
-## 3. VALIDATE EC2 WORKS
-
-Connect to the instance and test locally:
-
-curl http://localhost/
-
-Then open a browser:
-
-http://<public-ip>
-
-You should see:
-
-Instance ID
-Availability Zone
-Private IP
 
 This confirms Apache and the metadata script are functioning correctly.
 
